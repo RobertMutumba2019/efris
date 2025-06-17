@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Roger Invoices</title>
+</head>
+<body>
+    <h1>EFRIS Invoices</h1>
+    <table border="1">
+        <tr>
+            <th>Invoice Number</th>
+            <th>Description</th>
+            <th>Code</th>
+            <th>Request</th>
+            <th>Response</th>
+            <th>Request Message</th>
+            <th>Response Message</th>
+        </tr>
+        {% for invoice in invoices %}
+        <tr>
+            <td>{{ invoice.invoice_number }}</td>
+            <td>{{ invoice.description }}</td>
+            <td>{{ invoice.code }}</td>
+            <td>{{ invoice.request }}</td>
+            <td>{{ invoice.response }}</td>
+            <td>{{ invoice.request_message }}</td>
+            <td>{{ invoice.response_message }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
