@@ -1,0 +1,113 @@
+
+    <!-- TCS1204189834277525 -->
+   
+
+ <!DOCTYPE html>
+<html>
+<head>
+    <title>Search Local Invoice</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 30px; background: #f5f5f5; }
+        h1 { color: #333; }
+        .error { color: red; margin-top: 10px; }
+        table { border-collapse: collapse; width: 100%; background: white; margin-bottom: 30px; }
+        table, th, td { border: 1px solid #ddd; }
+        th, td { padding: 10px; }
+        th { background-color: #f0f0f0; }
+        .section-title { margin-top: 40px; font-size: 1.2em; font-weight: bold; color: #444; }
+        input[type="text"] { padding: 8px; width: 300px; }
+        button { padding: 8px 16px; background: #0066cc; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<h1>Insert Invoice No</h1>
+
+<form method="post">
+    {% csrf_token %}
+    <input type="text" name="invoiceNo" placeholder="Enter Invoice No">
+    <button type="submit">Search</button>
+</form>
+
+{% if error %}
+    <p class="error">{{ error }}</p>
+{% endif %}
+
+{% if invoice %}
+    <div class="section-title">Basic Information</div>
+    <table>
+        <tr><th>Reference No</th><td>{{ invoice.sellerDetails.referenceNo }}</td></tr>
+        <tr><th>Invoice No</th><td>{{ invoice.basicInformation.invoiceNo }}</td></tr>
+        <tr><th>Issued Date</th><td>{{ invoice.basicInformation.issuedDate }}</td></tr>
+        <tr><th>Operator</th><td>{{ invoice.basicInformation.operator }}</td></tr>
+        <tr><th>Currency</th><td>{{ invoice.basicInformation.currency }}</td></tr>
+    </table>
+
+    <div class="section-title">Buyer Details</div>
+    <table>
+        <tr><th>Name</th><td>{{ invoice.buyerDetails.buyerLegalName }}</td></tr>
+        <tr><th>Email</th><td>{{ invoice.buyerDetails.buyerEmail }}</td></tr>
+        <tr><th>Phone</th><td>{{ invoice.buyerDetails.buyerMobilePhone }}</td></tr>
+        <tr><th>Address</th><td>{{ invoice.buyerDetails.buyerAddress }}</td></tr>
+    </table>
+
+    <div class="section-title">Items</div>
+    <table>
+        <tr>
+            <th>Item</th><th>Qty</th><th>Unit Price</th><th>Net</th><th>Tax</th><th>Gross</th>
+        </tr>
+        {% for item in invoice.goodsDetails %}
+        <tr>
+            <td>{{ item.item }}</td>
+            <td>{{ item.qty }}</td>
+            <td>{{ item.unitPrice }}</td>
+            <td>{{ item.netAmount|default:item.total }}</td>
+            <td>{{ item.taxAmount|default:item.tax }}</td>
+            <td>{{ item.total }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <div class="section-title">Summary</div>
+    <table>
+        <tr><th>Net Amount</th><td>{{ invoice.summary.netAmount }}</td></tr>
+        <tr><th>Tax Amount</th><td>{{ invoice.summary.taxAmount }}</td></tr>
+        <tr><th>Gross Amount</th><td>{{ invoice.summary.grossAmount }}</td></tr>
+        <!-- <tr><th>Invoice NO</th><td>{{ invoice.summary.invoiceNo }}</td></tr> -->
+        <tr>
+            <th>QR Code</th>
+            <td>
+                {% if invoice.summary.qrCode %}
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ invoice.summary.qrCode|urlencode }}" alt="QR Code">
+                    <p><a href="{{ invoice.summary.qrCode }}" target="_blank">Validate Invoice</a></p>
+                {% else %}
+                    No QR Code
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+{% endif %}
+ <form method="post" action="{% url 'download_invoice_pdf' %}">
+    {% csrf_token %}
+    {{ invoice|json_script:"invoice-data" }}
+    <input type="hidden" name="invoice_json" id="invoice_json_input">
+    <input type="submit" value="Download PDF">
+</form>
+
+<script>
+    const invoiceData = JSON.parse(document.getElementById("invoice-data").textContent);
+    document.getElementById("invoice_json_input").value = JSON.stringify(invoiceData);
+</script>
+</body>
+</html>
+
+
+<!-- cmd python manage.py shell -->
+<!-- from efris.models import InvoiceRecord
+import json
+record = InvoiceRecord.objects.last()
+
+data = json.loads(record.data)
+
+import pprint
+pprint.pprint(data) -->

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice PDF</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        th, td { border: 1px solid #333; padding: 6px; text-align: left; }
+        h1, h2 { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Invoice Report</h1>
+
+    <h2>Basic Info</h2>
+    <table>
+        <tr><th>Invoice No</th><td>{{ invoice_data.basicInformation.invoiceNo }}</td></tr>
+        <tr><th>Issued Date</th><td>{{ invoice_data.basicInformation.issuedDate }}</td></tr>
+    </table>
+
+    <h2>Buyer Info</h2>
+    <table>
+        <tr><th>Name</th><td>{{ invoice_data.buyerDetails.buyerLegalName }}</td></tr>
+        <tr><th>Email</th><td>{{ invoice_data.buyerDetails.buyerEmail }}</td></tr>
+    </table>
+
+    <h2>Goods</h2>
+    <table>
+        <tr>
+            <th>Item</th><th>Qty</th><th>Unit Price</th><th>Tax</th><th>Total</th>
+        </tr>
+        {% for item in invoice_data.goodsDetails %}
+        <tr>
+            <td>{{ item.item }}</td>
+            <td>{{ item.qty }}</td>
+            <td>{{ item.unitPrice }}</td>
+            <td>{{ item.tax }}</td>
+            <td>{{ item.total }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h2>Summary</h2>
+    <table>
+        <tr><th>Net</th><td>{{ invoice_data.summary.netAmount }}</td></tr>
+        <tr><th>Tax</th><td>{{ invoice_data.summary.taxAmount }}</td></tr>
+        <tr><th>Gross</th><td>{{ invoice_data.summary.grossAmount }}</td></tr>
+    </table>
+   
+{% if qr_base64 %}
+    <h2>QR Code</h2>
+    <img src="data:image/png;base64,{{ qr_base64 }}" width="150" height="150" alt="QR Code">
+    <p>{{ invoice_data.summary.qrCode }}</p>
+{% endif %}
+
+
+</body>
+</html>

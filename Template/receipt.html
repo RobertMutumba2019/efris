@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Receipt</title>
+    <style>
+        body { font-family: Arial; margin: 2rem; }
+        .receipt-box {
+            border: 1px solid #ccc; padding: 2rem;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h2 { text-align: center; }
+        .qr-code { text-align: center; margin-top: 2rem; }
+    </style>
+</head>
+<body>
+    <div class="receipt-box">
+        <h2>Invoice Receipt</h2>
+        <p><strong>Reference No:</strong> {{ invoice.sellerDetails.referenceNo }}</p>
+        <p><strong>Seller TIN:</strong> {{ invoice.sellerDetails.tin }}</p>
+        <p><strong>Invoice No:</strong> {{ invoice.basicInformation.invoiceNo }}</p>
+        <p><strong>Currency:</strong> {{ invoice.basicInformation.currency }}</p>
+        <p><strong>Issued Date:</strong> {{ invoice.basicInformation.issuedDate }}</p>
+        <p><strong>Buyer TIN:</strong> {{ invoice.buyerDetails.buyerTin }}</p>
+        <p><strong>Buyer Name:</strong> {{ invoice.buyerDetails.buyerLegalName }}</p>
+        <h4>Goods Details:</h4>
+        <ul>
+            {% for item in invoice.goodsDetails %}
+                <li>
+                    {{ item.item }} - Qty: {{ item.qty }} @ {{ item.unitPrice }} = {{ item.total }}
+                </li>
+            {% endfor %}
+        </ul>
+        <div class="qr-code">
+            <p><strong>QR Code URL:</strong> {{ invoice.summary.qrCode }}</p>
+            <!-- Optional: if QR code is a valid URL to image -->
+            <img src="{{ invoice.summary.qrCode }}" alt="QR Code" width="200">
+        </div>
+    </div>
+</body>
+</html>

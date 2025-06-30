@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard - Invoice Management</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 30px; background: #f5f5f5; }
+        h1 { color: #333; }
+        .error { color: red; margin-top: 10px; }
+        table { border-collapse: collapse; width: 100%; background: white; }
+        table, th, td { border: 1px solid #ddd; }
+        th, td { padding: 10px; }
+        th { background-color: #f0f0f0; }
+        .section-title { margin-top: 40px; font-size: 1.2em; font-weight: bold; color: #444; }
+        button, input[type=submit] {
+            padding: 8px 16px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .btn-group button {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 class="text-2xl font-bold text-center text-blue-600">Dashboard Page</h1>
+    <p><strong>Total Invoices Generated:</strong> {{ request.session.invoice_count|default:0 }}</p>
+
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
+
+    {% if invoice_data %}
+        <div class="section-title">Basic Information</div>
+        <table>
+            <tr><th>Reference No</th><td>{{ invoice_data.sellerDetails.referenceNo }}</td></tr>
+            <tr><th>Invoice No</th><td>{{ invoice_data.basicInformation.invoiceNo }}</td></tr>
+            <tr><th>Issued Date</th><td>{{ invoice_data.basicInformation.issuedDate }}</td></tr>
+            <tr><th>Operator</th><td>{{ invoice_data.basicInformation.operator }}</td></tr>
+            <tr><th>Currency</th><td>{{ invoice_data.basicInformation.currency }}</td></tr>
+        </table>
+
+        <div class="section-title">Buyer Details</div>
+        <table>
+            <tr><th>Name</th><td>{{ invoice_data.buyerDetails.buyerLegalName }}</td></tr>
+            <tr><th>Email</th><td>{{ invoice_data.buyerDetails.buyerEmail }}</td></tr>
+            <tr><th>Phone</th><td>{{ invoice_data.buyerDetails.buyerMobilePhone }}</td></tr>
+        </table>
+
+        <div class="section-title">Items</div>
+        <div class="section-title">Add New Item</div>
+     <table>
+    <tr>
+        <td><input id="item-name" placeholder="Item Name"></td>
+        <td><input id="item-qty" type="number" placeholder="Quantity"></td>
+        <td><input id="item-price" type="number" placeholder="Unit Price"></td>
+        <td><button onclick="addNewItem()">Add to Invoice</button></td>
+    </tr>
+    </table>
+
+    <table>
+    <tr>
+        <th>Item</th><th>Qty</th><th>Unit Price</th><th>Net</th><th>Tax</th><th>Gross</th><th>Actions</th>
+    </tr>
+    <tbody id="items-body"></tbody>
+    </table>
+
+
+
+        <div class="section-title">Summary</div>
+        <table>
+            <tr><th>Net Amount</th><td>{{ invoice_data.summary.netAmount }}</td></tr>
+            <tr><th>Tax</th><td>{{ invoice_data.summary.taxAmount }}</td></tr>
+            <tr><th>Gross</th><td>{{ invoice_data.summary.grossAmount }}</td></tr>
+            
+        </table>
+
+        <div class="section-title">QR Code</div>
+        {% if invoice_data.summary.qrCode %}
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ invoice_data.summary.qrCode|urlencode }}" alt="QR Code">
+            <p>Scan to validate: <a href="{{ invoice_data.summary.qrCode }}" target="_blank">{{ invoice_data.summary.qrCode }}</a></p>
+        {% else %}
+            <p>No QR code available.</p>
+        {% endif %}
+
+        {{ invoice_data|json_script:"invoice-data" }}
+
+        <div class="btn-group">
+            <form method="post" action="{% url 'upload_invoice_to_efris' %}">
+  {% csrf_token %}
+  <input type="submit" value="Upload to EFRIS">
+</form>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const uploadForm = document.querySelector('form[action="{% url "upload_invoice_to_efris" %}"]');
+  uploadForm.addEventListener('submit', async function (event) {
+    event.preventDefault();
+
+    // Save invoice session before submitting
+    const response = await fetch("{% url 'save_invoice_session' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": "{{ csrf_token }}"
+      },
+      body: JSON.stringify(invoiceData)
+    });
+
+    const result = await response.json();
+
+    if (result.status === "success") {
+      setTimeout(() => uploadForm.submit(), 0);
+    } else {
+      alert("Save failed before upload: " + result.message);
+    }
+  });
+});
+</script>
+<form method="post" action="{% url 'fetch_invoice_t108' %}">
+  {% csrf_token %}
+  <input type="text" name="invoiceNo" placeholder="Enter Invoice No">
+  <button type="submit">Fetch from EFRIS</button>
+</form>
+
+          </div>
+
+    {% endif %} <!-- ✅ THIS IS THE MISSING CLOSING TAG -->
+
+    <script>
+    async function saveInvoiceSession() {
+      try {
+        const invoiceData = JSON.parse(document.getElementById("invoice-data").textContent);
+
+        const response = await fetch("{% url 'save_invoice_session' %}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+          },
+          body: JSON.stringify(invoiceData)
+        });
+
+        return await response.json();
+      } catch (err) {
+        console.error("Session save failed:", err);
+        return { status: "error", message: "Could not prepare invoice." };
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const uploadForm = document.querySelector('form[action="{% url "upload_invoice_to_efris" %}"]');
+      if (!uploadForm) {
+        console.warn("Upload form not found");
+        return;
+      }
+
+      uploadForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const saveResult = await saveInvoiceSession();
+
+        if (saveResult.status === "success") {
+          setTimeout(() => uploadForm.submit(), 0);
+        } else {
+          alert("Failed to save invoice session: " + saveResult.message);
+        }
+      });
+    });
+    </script>
+    <script>
+let invoiceData = JSON.parse(document.getElementById("invoice-data").textContent);
+
+function truncate(num, dec = 2) {
+  return Math.floor(num * Math.pow(10, dec)) / Math.pow(10, dec);
+}
+
+function renderItems() {
+  const tbody = document.getElementById("items-body");
+  tbody.innerHTML = "";
+
+  invoiceData.goodsDetails.forEach((item, index) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${item.item}</td>
+      <td>${item.qty}</td>
+      <td>${item.unitPrice}</td>
+      <td>${item.netAmount}</td>
+      <td>${item.taxAmount}</td>
+      <td>${item.total}</td>
+      <td>
+        <button onclick="editItem(${index})">Edit</button>
+        <button onclick="deleteItem(${index})">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  document.getElementById("invoice_json_input").value = JSON.stringify(invoiceData);
+}
+
+function addNewItem() {
+  const name = document.getElementById("item-name").value;
+  const qty = parseFloat(document.getElementById("item-qty").value);
+  const price = parseFloat(document.getElementById("item-price").value);
+
+  if (!name || isNaN(qty) || isNaN(price)) {
+    alert("Please enter all fields");
+    return;
+  }
+
+  const total = truncate(qty * price);
+  const tax = truncate(total * 18 / 118);
+  const net = truncate(total - tax);
+
+  invoiceData.goodsDetails.push({
+    item: name,
+    qty: qty,
+    unitPrice: price,
+    taxRate: 0.18,
+    taxAmount: tax,
+    netAmount: net,
+    total: total,
+    orderNumber: invoiceData.goodsDetails.length,
+    itemCode: "TEMP-CODE",
+    unitOfMeasure: "PCE",
+    deemedFlag: "2",
+    discountFlag: "2",
+    exciseFlag: "2",
+    goodsCategoryId: "73181104",
+    commodityCategoryId: "73181104"
+  });
+
+  // Update summary too
+  invoiceData.summary.netAmount = truncate(invoiceData.goodsDetails.reduce((sum, i) => sum + i.netAmount, 0));
+  invoiceData.summary.taxAmount = truncate(invoiceData.goodsDetails.reduce((sum, i) => sum + i.taxAmount, 0));
+  invoiceData.summary.grossAmount = truncate(invoiceData.goodsDetails.reduce((sum, i) => sum + i.total, 0));
+  invoiceData.summary.itemCount = invoiceData.goodsDetails.length;
+
+  renderItems();
+}
+
+function deleteItem(index) {
+  invoiceData.goodsDetails.splice(index, 1);
+  renderItems();
+}
+
+function editItem(index) {
+  const item = invoiceData.goodsDetails[index];
+  document.getElementById("item-name").value = item.item;
+  document.getElementById("item-qty").value = item.qty;
+  document.getElementById("item-price").value = item.unitPrice;
+  deleteItem(index);
+}
+
+// When page loads
+document.addEventListener("DOMContentLoaded", function () {
+  renderItems();
+});
+</script>
+
+</body>
+</html>

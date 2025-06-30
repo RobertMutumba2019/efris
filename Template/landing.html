@@ -1,31 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Roger Invoices</title>
+  <meta charset="UTF-8">
+  <title>Enter TIN - EFRIS Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <h1>EFRIS Invoices</h1>
-    <table border="1">
-        <tr>
-            <th>Invoice Number</th>
-            <th>Description</th>
-            <th>Code</th>
-            <th>Request</th>
-            <th>Response</th>
-            <th>Request Message</th>
-            <th>Response Message</th>
-        </tr>
-        {% for invoice in invoices %}
-        <tr>
-            <td>{{ invoice.invoice_number }}</td>
-            <td>{{ invoice.description }}</td>
-            <td>{{ invoice.code }}</td>
-            <td>{{ invoice.request }}</td>
-            <td>{{ invoice.response }}</td>
-            <td>{{ invoice.request_message }}</td>
-            <td>{{ invoice.response_message }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+<body class="min-h-screen bg-gradient-to-br from-blue-100 via-blue-300 to-blue-500 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+    
+    <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">Welcome to EFRIS Portal</h2>
+
+    <!-- TIN Input Form -->
+    <form method="post" class="space-y-6">
+      {% csrf_token %}
+      <div>
+        <label for="tin" class="block text-sm font-medium text-gray-700">Enter your TIN</label>
+        <input type="text" name="tin" id="tin" required
+               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <button type="submit"
+              class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 transition">
+        Submit
+      </button>
+    </form>
+
+    <!-- Error message -->
+    {% if error %}
+      <p class="mt-4 text-sm text-red-600 font-medium">{{ error }}</p>
+    {% endif %}
+
+    <!-- TIN Details -->
+    {% if tin_data %}
+      <div class="mt-6 border-t pt-4">
+        <p class="text-green-600 font-semibold mb-2">TIN verified successfully. Review the details below:</p>
+
+        <h3 class="text-lg font-semibold text-gray-800 mb-2">TIN Details</h3>
+        <ul class="text-sm text-gray-700 space-y-1">
+          <li><strong>Legal Name:</strong> {{ tin_data.legalName }}</li>
+          <li><strong>Business Name:</strong> {{ tin_data.businessName }}</li>
+          <li><strong>Address:</strong> {{ tin_data.address }}</li>
+          <li><strong>Email:</strong> {{ tin_data.emailAddress }}</li>
+          <li><strong>Phone:</strong> {{ tin_data.mobilePhone }}</li>
+        </ul>
+
+        <!-- Proceed Button -->
+        <form method="get" action="{% url 'dashboard' %}" class="mt-6">
+          <button type="submit"
+                  class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition">
+            Proceed to Dashboard
+          </button>
+        </form>
+      </div>
+    {% endif %}
+
+  </div>
 </body>
 </html>
